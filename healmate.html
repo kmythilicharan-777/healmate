@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HEALMATE - Symptom Checker + Medicine Suggestions</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        /* Auth Modal */
+        .auth-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+        .auth-container {
+            background: white;
+            border-radius: 25px;
+            padding: 40px;
+            width: 450px;
+            max-width: 90%;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        .auth-container h2 {
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        .auth-tabs {
+            display: flex;
+            gap: 10px;
+            margin: 25px 0 20px;
+            border-bottom: 2px solid #eee;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: none;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom: 2px solid #667eea;
+        }
+        .auth-form {
+            display: none;
+            text-align: left;
+        }
+        .auth-form.active {
+            display: block;
+        }
+        .auth-form input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+        .auth-form button, .demo-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+        .demo-btn {
+            background: #27ae60;
+            margin-top: 10px;
+        }
+        /* Main App */
+        #mainApp {
+            display: none;
+        }
+        .header {
+            background: white;
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .user-area {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .logout-btn {
+            background: #e74c3c;
+            padding: 8px 20px;
+            border-radius: 20px;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        .chat-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .card-header {
+            padding: 20px;
+            color: white;
+        }
+        .symptom-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+        .chatbot-header {
+            background: linear-gradient(135deg, #11998e, #38ef7d);
+        }
+        .card-header h3 {
+            margin-bottom: 5px;
+        }
+        .chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        .message.user {
+            justify-content: flex-end;
+        }
+        .message-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #e0e0e0;
+        }
+        .message.user .message-avatar {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        .message-content {
+            max-width: 70%;
+            padding: 10px 15px;
+            border-radius: 18px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .message.bot .message-content {
+            background: white;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        .input-area {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+        }
+        textarea, input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            font-family: inherit;
+            resize: none;
+        }
+        button {
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .results-panel {
+            position: fixed;
+            right: -500px;
+            top: 0;
+            width: 500px;
+            height: 100%;
+            background: white;
+            box-shadow: -5px 0 30px rgba(0,0,0,0.2);
+            transition: right 0.3s;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        .results-panel.open {
+            right: 0;
+        }
+        .results-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .results-header button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+        }
+        .results-content {
+            padding: 20px;
+        }
+        .result-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            border-left: 4px solid #667eea;
+            margin-bottom: 15px;
+        }
+        .severity-high { color: #e74c3c; font-weight: bold; }
+        .severity-medium { color: #f39c12; font-weight: bold; }
+        .severity-low { color: #27ae60; font-weight: bold; }
+        .loading {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .typing-indicator {
+            display: flex;
+            gap: 5px;
+            padding: 5px;
+        }
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            background: #999;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+        @keyframes typing {
+            0%,60%,100% { transform: translateY(0); }
+            30% { transform: translateY(-8px); }
+        }
+        @media (max-width: 768px) {
+            .container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Auth Overlay -->
+    <div id="authOverlay" class="auth-overlay">
+        <div class="auth-container">
+            <h2>🏥 HEALMATE</h2>
+            <p>AI Symptom Checker + Medicine Suggestions</p>
+            <div class="auth-tabs">
+                <button class="tab-btn active" onclick="switchTab('login')">Login</button>
+                <button class="tab-btn" onclick="switchTab('signup')">Sign Up</button>
+            </div>
+            <div id="loginForm" class="auth-form active">
+                <input type="email" id="loginEmail" placeholder="Email">
+                <input type="password" id="loginPassword" placeholder="Password">
+                <button onclick="login()">Login</button>
+                <button class="demo-btn" onclick="demoLogin()">Use Demo Account</button>
+            </div>
+            <div id="signupForm" class="auth-form">
+                <input type="email" id="signupEmail" placeholder="Email">
+                <input type="tel" id="signupMobile" placeholder="Mobile Number">
+                <input type="password" id="signupPassword" placeholder="Password (min 6 chars)">
+                <input type="password" id="signupConfirm" placeholder="Confirm Password">
+                <button onclick="signup()">Create Account</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="mainApp">
+        <div class="header">
+            <div class="logo">🏥 HEALMATE</div>
+            <div class="user-area">
+                <span id="userName"></span>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </div>
+        <div class="container">
+            <!-- Symptom Checker with Medicine Suggestions -->
+            <div class="chat-card">
+                <div class="card-header symptom-header">
+                    <h3>🩺 AI Symptom Checker</h3>
+                    <p>Describe your symptoms → Get diagnosis + medicine suggestions</p>
+                </div>
+                <div id="symptomMessages" class="chat-messages">
+                    <div class="message bot">
+                        <div class="message-avatar">🩺</div>
+                        <div class="message-content">Hello! Describe your symptoms (e.g., "fever", "cough", "headache", "stomach pain"). I will suggest OTC medicines for minor issues.</div>
+                    </div>
+                </div>
+                <div class="input-area">
+                    <textarea id="symptomInput" rows="2" placeholder="Type your symptoms..."></textarea>
+                    <button onclick="checkSymptoms()">Analyze</button>
+                </div>
+            </div>
+            <!-- Emotional Support Chatbot (keyword-based) -->
+            <div class="chat-card">
+                <div class="card-header chatbot-header">
+                    <h3>💚 Emotional Support Bot</h3>
+                    <p>Talk about your feelings – I'll listen and encourage</p>
+                </div>
+                <div id="chatbotMessages" class="chat-messages">
+                    <div class="message bot">
+                        <div class="message-avatar">💚</div>
+                        <div class="message-content">Hello! How are you feeling today? Share anything – I'm here for you.</div>
+                    </div>
+                </div>
+                <div class="input-area">
+                    <input type="text" id="chatbotInput" placeholder="How are you feeling?">
+                    <button onclick="sendChatbotMessage()">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Panel -->
+    <div id="resultsPanel" class="results-panel">
+        <div class="results-header">
+            <h3>📋 Health Report</h3>
+            <button onclick="closeResults()">&times;</button>
+        </div>
+        <div id="resultsContent" class="results-content"></div>
+    </div>
+
+    <script>
+        // ----------------------------- USER AUTH -----------------------------
+        let users = [];
+        let currentUser = null;
+        let consultations = [];
+
+        function loadUsers() {
+            const stored = localStorage.getItem('healmate_users');
+            if (stored) users = JSON.parse(stored);
+            else {
+                users = [{ email: "demo@healmate.com", mobile: "1234567890", password: "demo123" }];
+                localStorage.setItem('healmate_users', JSON.stringify(users));
+            }
+        }
+        function saveUsers() { localStorage.setItem('healmate_users', JSON.stringify(users)); }
+        loadUsers();
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            if (tab === 'login') {
+                document.querySelector('.tab-btn:first-child').classList.add('active');
+                document.getElementById('loginForm').classList.add('active');
+                document.getElementById('signupForm').classList.remove('active');
+            } else {
+                document.querySelector('.tab-btn:last-child').classList.add('active');
+                document.getElementById('signupForm').classList.add('active');
+                document.getElementById('loginForm').classList.remove('active');
+            }
+        }
+
+        function signup() {
+            const email = document.getElementById('signupEmail').value.trim();
+            const mobile = document.getElementById('signupMobile').value.trim();
+            const pwd = document.getElementById('signupPassword').value;
+            const confirm = document.getElementById('signupConfirm').value;
+            if (!email || !mobile || !pwd) { alert('Fill all fields'); return; }
+            if (!email.includes('@')) { alert('Invalid email'); return; }
+            if (mobile.length < 10) { alert('Mobile must be 10+ digits'); return; }
+            if (pwd.length < 6) { alert('Password min 6 characters'); return; }
+            if (pwd !== confirm) { alert('Passwords do not match'); return; }
+            if (users.find(u => u.email === email)) { alert('Email already exists. Login instead.'); return; }
+            users.push({ email, mobile, password: pwd });
+            saveUsers();
+            alert('Account created! Please login.');
+            switchTab('login');
+            document.getElementById('signupEmail').value = '';
+            document.getElementById('signupMobile').value = '';
+            document.getElementById('signupPassword').value = '';
+            document.getElementById('signupConfirm').value = '';
+        }
+
+        function login() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const pwd = document.getElementById('loginPassword').value;
+            const user = users.find(u => u.email === email && u.password === pwd);
+            if (user) {
+                currentUser = user;
+                localStorage.setItem('healmate_current_user', JSON.stringify(currentUser));
+                document.getElementById('authOverlay').style.display = 'none';
+                document.getElementById('mainApp').style.display = 'block';
+                document.getElementById('userName').innerHTML = `👤 ${email.split('@')[0]}`;
+                addSymptomMessage(`Welcome back! Describe your symptoms.`, 'bot');
+                addChatbotMessage(`Hi again! How are you feeling today? 💚`, 'bot');
+                const saved = localStorage.getItem(`consultations_${currentUser.email}`);
+                if (saved) consultations = JSON.parse(saved);
+                document.getElementById('loginEmail').value = '';
+                document.getElementById('loginPassword').value = '';
+            } else {
+                alert('❌ Invalid credentials. Use demo@healmate.com / demo123 or sign up.');
+            }
+        }
+
+        function demoLogin() {
+            document.getElementById('loginEmail').value = 'demo@healmate.com';
+            document.getElementById('loginPassword').value = 'demo123';
+            login();
+        }
+
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('healmate_current_user');
+            document.getElementById('mainApp').style.display = 'none';
+            document.getElementById('authOverlay').style.display = 'flex';
+            document.getElementById('symptomMessages').innerHTML = '<div class="message bot"><div class="message-avatar">🩺</div><div class="message-content">Hello! Describe your symptoms.</div></div>';
+            document.getElementById('chatbotMessages').innerHTML = '<div class="message bot"><div class="message-avatar">💚</div><div class="message-content">Hello! How are you feeling today?</div></div>';
+        }
+
+        // ----------------------------- SYMPTOM DATABASE WITH MEDICINES -----------------------------
+        const diseases = {
+            "fever": {
+                name: "Fever / Viral Fever",
+                advice: "Rest, stay hydrated, monitor temperature.",
+                severity: "medium",
+                medicines: "Paracetamol (Dolo 650 / Crocin) every 6 hours if fever > 100°F. Do not exceed 4 doses/day.",
+                remedies: "Cold compress, lukewarm bath, drink ORS / coconut water.",
+                prevention: "Boost immunity with Vitamin C, get enough sleep."
+            },
+            "cough": {
+                name: "Common Cold / Dry Cough",
+                advice: "Warm fluids, honey, avoid cold items.",
+                severity: "low",
+                medicines: "Honey + ginger juice (natural), or over‑the‑counter cough syrup (e.g., Benadryl, TusQ). For dry cough, use dextromethorphan-based syrup.",
+                remedies: "Steam inhalation, salt water gargle, ginger tea.",
+                prevention: "Hand hygiene, avoid smoke/dust."
+            },
+            "headache": {
+                name: "Tension Headache",
+                advice: "Rest in dark, quiet room. Stay hydrated.",
+                severity: "low",
+                medicines: "Paracetamol (Crocin / Dolo) or Ibuprofen (Brufen) if no stomach issues.",
+                remedies: "Cold compress on forehead, gentle neck massage, deep breathing.",
+                prevention: "Regular sleep, reduce screen time, manage stress."
+            },
+            "chest pain": {
+                name: "⚠️ Cardiac Concern",
+                advice: "SEEK EMERGENCY MEDICAL HELP IMMEDIATELY. Do not self‑medicate.",
+                severity: "high",
+                medicines: "None – go to hospital. Ask for aspirin only if instructed by doctor.",
+                remedies: "Call ambulance. Sit upright. Do not drive yourself.",
+                prevention: "Regular exercise, healthy diet, no smoking."
+            },
+            "stomach pain": {
+                name: "Gastritis / Indigestion",
+                advice: "Avoid spicy/oily food. Small frequent meals.",
+                severity: "medium",
+                medicines: "Antacids (Gelusil / Digene), or Proton Pump Inhibitor (Omeprazole) once daily before food.",
+                remedies: "Ginger tea, fennel seeds, peppermint, BRAT diet (Bananas, Rice, Applesauce, Toast).",
+                prevention: "Avoid overeating, reduce caffeine, eat on time."
+            },
+            "nausea": {
+                name: "Nausea / Upset Stomach",
+                advice: "Sip water slowly, avoid strong smells.",
+                severity: "low",
+                medicines: "Ondansetron (Emeset) or over‑the‑counter antacids with simethicone (Gelusil).",
+                remedies: "Ginger candy, peppermint tea, crackers.",
+                prevention: "Eat small meals, avoid greasy food."
+            }
+        };
+
+        function getMedicineSuggestions(symptom) {
+            const lower = symptom.toLowerCase();
+            for (let [key, data] of Object.entries(diseases)) {
+                if (lower.includes(key)) {
+                    return data;
+                }
+            }
+            return {
+                name: "General Symptoms",
+                advice: "Monitor for 24h, rest, hydrate. If persists, consult doctor.",
+                severity: "low",
+                medicines: "No specific OTC medicine. Use paracetamol for discomfort if needed (read label).",
+                remedies: "Plenty of fluids, light food, rest.",
+                prevention: "Maintain healthy lifestyle."
+            };
+        }
+
+        // ----------------------------- CHATBOT HELPER (keyword based) -----------------------------
+        function getChatbotResponse(msg) {
+            const m = msg.toLowerCase();
+            if (m.match(/hi|hello|hey/)) return "Hello! 💚 How are you feeling today?";
+            if (m.match(/sad|depressed|unhappy|down/)) return "I'm sorry you're feeling sad. 🫂 It's okay to not be okay. Want to talk about it?";
+            if (m.match(/anxious|worried|scared|nervous/)) return "Anxiety can be tough. Let's breathe together – inhale... exhale. You're safe. How can I help?";
+            if (m.match(/happy|good|great|wonderful/)) return "That's wonderful! 🎉 I'm glad you're feeling good. What made you happy?";
+            if (m.match(/thank|thanks/)) return "You're very welcome! 💚 I'm always here for you.";
+            if (m.match(/pain|hurt|ache/)) return "I'm sorry you're in pain. Have you tried our symptom checker for medicine suggestions?";
+            if (m.match(/tired|exhausted/)) return "Rest is important. Please take a break and have some water. 💤";
+            return "Thank you for sharing. 💚 Would you like to tell me more? I'm listening.";
+        }
+
+        // ----------------------------- UI Helpers -----------------------------
+        function addSymptomMessage(content, sender) {
+            const div = document.getElementById('symptomMessages');
+            const msg = document.createElement('div');
+            msg.className = `message ${sender}`;
+            msg.innerHTML = `<div class="message-avatar">${sender === 'user' ? '👤' : '🩺'}</div><div class="message-content">${content.replace(/\n/g, '<br>')}</div>`;
+            div.appendChild(msg);
+            div.scrollTop = div.scrollHeight;
+        }
+
+        function addChatbotMessage(content, sender) {
+            const div = document.getElementById('chatbotMessages');
+            const msg = document.createElement('div');
+            msg.className = `message ${sender}`;
+            msg.innerHTML = `<div class="message-avatar">${sender === 'user' ? '👤' : '💚'}</div><div class="message-content">${content.replace(/\n/g, '<br>')}</div>`;
+            div.appendChild(msg);
+            div.scrollTop = div.scrollHeight;
+        }
+
+        function showResults(analysis, symptoms) {
+            const contentDiv = document.getElementById('resultsContent');
+            contentDiv.innerHTML = `
+                <div class="result-card">
+                    <h4>📋 Health Analysis</h4>
+                    <p><strong>Your symptoms:</strong> ${symptoms}</p>
+                    <hr>
+                    <p><strong>🩺 Possible condition:</strong> ${analysis.name}</p>
+                    <p><strong>⚠️ Severity:</strong> <span class="severity-${analysis.severity}">${analysis.severity.toUpperCase()}</span></p>
+                    <p><strong>💊 Suggested OTC Medicines:</strong> ${analysis.medicines}</p>
+                    <p><strong>🏠 Home Remedies:</strong> ${analysis.remedies}</p>
+                    <p><strong>📌 General advice:</strong> ${analysis.advice}</p>
+                    <p><strong>🛡️ Prevention tips:</strong> ${analysis.prevention}</p>
+                    ${analysis.severity === 'high' ? '<p style="color:red; font-weight:bold;">⚠️ URGENT: Do not self-medicate. Visit a doctor or ER immediately.</p>' : '<p><small>💡 Note: These are general suggestions. Consult a doctor if symptoms persist.</small></p>'}
+                </div>
+            `;
+            document.getElementById('resultsPanel').classList.add('open');
+        }
+
+        function closeResults() {
+            document.getElementById('resultsPanel').classList.remove('open');
+        }
+
+        // ----------------------------- Symptom Checker Action -----------------------------
+        function checkSymptoms() {
+            if (!currentUser) { alert('Please login first'); return; }
+            const symptoms = document.getElementById('symptomInput').value.trim();
+            if (!symptoms) { alert('Please describe your symptoms'); return; }
+            addSymptomMessage(symptoms, 'user');
+            document.getElementById('symptomInput').value = '';
+            
+            const loading = document.createElement('div');
+            loading.className = 'message bot';
+            loading.innerHTML = `<div class="message-avatar">🩺</div><div class="message-content"><div class="loading"></div> Analyzing...</div>`;
+            document.getElementById('symptomMessages').appendChild(loading);
+            
+            setTimeout(() => {
+                loading.remove();
+                const analysis = getMedicineSuggestions(symptoms);
+                let reply = `🔍 **Analysis:** ${analysis.name}\n\n`;
+                reply += `💊 **Medicine suggestion:** ${analysis.medicines}\n\n`;
+                reply += `🏠 **Home remedy:** ${analysis.remedies}\n\n`;
+                if (analysis.severity !== 'high') reply += `✅ Rest and hydrate. If symptoms worsen, see a doctor.\n\n`;
+                else reply += `⚠️ **URGENT:** Please seek immediate medical attention!\n\n`;
+                reply += `💬 Need emotional support? Talk to the green bot.`;
+                addSymptomMessage(reply, 'bot');
+                showResults(analysis, symptoms);
+                
+                // Save consultation
+                consultations.unshift({ symptoms, result: analysis, date: new Date().toLocaleString() });
+                localStorage.setItem(`consultations_${currentUser.email}`, JSON.stringify(consultations.slice(0, 10)));
+            }, 1200);
+        }
+
+        // ----------------------------- Chatbot Action -----------------------------
+        async function sendChatbotMessage() {
+            if (!currentUser) { alert('Please login first'); return; }
+            const input = document.getElementById('chatbotInput');
+            const msg = input.value.trim();
+            if (!msg) return;
+            addChatbotMessage(msg, 'user');
+            input.value = '';
+            
+            const typing = document.createElement('div');
+            typing.className = 'message bot';
+            typing.innerHTML = `<div class="message-avatar">💚</div><div class="message-content"><div class="typing-indicator"><span></span><span></span><span></span></div></div>`;
+            document.getElementById('chatbotMessages').appendChild(typing);
+            
+            setTimeout(() => {
+                typing.remove();
+                const response = getChatbotResponse(msg);
+                addChatbotMessage(response, 'bot');
+            }, 700);
+        }
+
+        // ----------------------------- Event Listeners & Auto-login -----------------------------
+        document.getElementById('symptomInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); checkSymptoms(); }
+        });
+        document.getElementById('chatbotInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); sendChatbotMessage(); }
+        });
+
+        const savedUser = localStorage.getItem('healmate_current_user');
+        if (savedUser) {
+            currentUser = JSON.parse(savedUser);
+            if (users.find(u => u.email === currentUser.email && u.password === currentUser.password)) {
+                document.getElementById('authOverlay').style.display = 'none';
+                document.getElementById('mainApp').style.display = 'block';
+                document.getElementById('userName').innerHTML = `👤 ${currentUser.email.split('@')[0]}`;
+                addSymptomMessage(`Welcome back! Describe your symptoms.`, 'bot');
+                addChatbotMessage(`Hi! How are you feeling today? 💚`, 'bot');
+                const savedCons = localStorage.getItem(`consultations_${currentUser.email}`);
+                if (savedCons) consultations = JSON.parse(savedCons);
+            } else {
+                localStorage.removeItem('healmate_current_user');
+            }
+        }
+    </script>
+</body>
+</html>
